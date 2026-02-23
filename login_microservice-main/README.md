@@ -1,26 +1,44 @@
 # login_microservice
-This microservice provides basic user account functionality for distributed applications. It allows clients program to: Create a user account, Authenticate and receive a session token, Retrieve user profile information, and Validate an authenticated session using a token. 
 
-1. Create User
-Creates a new user account.
+This microservice provides user authentication and basic account management functionality for a distributed application. It allows a client program to create user accounts, authenticate users, retrieve profile information, validate active sessions, and terminate sessions when necessary.
 
-Request
-Method: POST
-Route: /users
-Headers: Content-Type: application/json
-Request Data Example:
+All communication occurs over HTTP using JSON request and response bodies. Authentication is handled using bearer tokens returned during login.
+
+---
+
+## Communication Contract
+
+The following sections describe how to request data from the microservice and how responses are returned.
+
+---
+
+## 1. Create User
+
+Creates a new user account and securely stores the credentials.
+
+Request  
+Method: POST  
+Route: /users  
+Headers: Content-Type: application/json  
+
+Body Example:
+```json
 {
   "user_id": "test_user",
   "password": "pass1234",
   "display_name": "Test User"
 }
+```
 
-Programmatic call:
+Example curl call:
+```bash
 curl -X POST http://127.0.0.1:5002/users \
   -H "Content-Type: application/json" \
   -d '{"user_id":"test_user","password":"pass1234","display_name":"Test User"}'
+```
 
-Response Example:
+Successful Response (200):
+```json
 {
   "ok": true,
   "user": {
@@ -28,46 +46,66 @@ Response Example:
     "display_name": "Test User"
   }
 }
+```
 
-2. User login
+If the user already exists or the input is invalid, a 400-level error will be returned.
+
+---
+
+## 2. User Login
+
 Authenticates a user and returns a session token.
 
-Request
-Method: POST
-Route: /login
-Headers: Content-Type: application/json
+Request  
+Method: POST  
+Route: /login  
+Headers: Content-Type: application/json  
 
-Request Data Example:
+Body Example:
+```json
 {
   "user_id": "test_user",
   "password": "pass1234"
 }
+```
 
-Programmatic Call:
+Example curl call:
+```bash
 curl -X POST http://127.0.0.1:5002/login \
   -H "Content-Type: application/json" \
   -d '{"user_id":"test_user","password":"pass1234"}'
+```
 
-Response Example:
+Successful Response (200):
+```json
 {
   "ok": true,
   "token": "RANDOM_GENERATED_TOKEN",
   "user_id": "test_user"
 }
+```
 
-3. Get Current User
-Returns the authenticated user's profile information.
+If credentials are incorrect, the service responds with status 401 Unauthorized.
 
-Request
-Method: GET
-Route: /me
-Headers: Authorization: Bearer RANDOM_GENERATED_TOKEN
+---
 
-Programmatic Call:
+## 3. Get Current User
+
+Returns the authenticated user's profile information. A valid bearer token is required.
+
+Request  
+Method: GET  
+Route: /me  
+Headers: Authorization: Bearer <token>
+
+Example:
+```bash
 curl http://127.0.0.1:5002/me \
   -H "Authorization: Bearer RANDOM_GENERATED_TOKEN"
+```
 
-Response Example:
+Successful Response (200):
+```json
 {
   "ok": true,
   "user": {
@@ -75,61 +113,174 @@ Response Example:
     "display_name": "Test User"
   }
 }
+```
 
-4. Get Public User Profile
-Returns a user’s public profile (no password).
+If the token is invalid or expired, a 401 error is returned.
 
-Request
-Method: GET
+---
+
+## 4. Get Public User Profile
+
+Returns public profile information for a specified user. This endpoint does not require authentication.
+
+Request  
+Method: GET  
 Route: /users/{user_id}
 
-Example Call:
+Example:
+```bash
 curl http://127.0.0.1:5002/users/test_user
+```
 
-Response Example:
+Response:
+```json
 {
   "user_id": "test_user",
   "display_name": "Test User"
 }
+```
 
-5. Endpoint
-Echo endpoint used to demonstrate request/response functionality.
+If the user does not exist, a 404 error is returned.
 
-Request
-Method: POST
-Route: /ping
+---
+
+## 5. Validate Token
+
+Validates whether a provided authentication token is currently active.
+
+Request  
+Method: GET  
+Route: /validate  
+Headers: Authorization: Bearer <token>
+
+Example:
+```bash
+curl http://127.0.0.1:5002/validate \
+  -H "Authorization: Bearer RANDOM_GENERATED_TOKEN"
+```
+
+Successful Response (200):
+```json
 {
- Example: "message": "This is a message from CS361"
+  "ok": true,
+  "user_id": "test_user"
 }
+```
 
-Example Call:
-curl -X POST http://127.0.0.1:5002/ping \
-  -H "Content-Type: application/json" \
-  -d '{"message":"This is a message from CS361"}'
+If the token is invalid or expired, a 401 Unauthorized response is returned.
 
-Response Example:
+---
+
+## 6. Logout
+
+Invalidates an active session token.
+
+Request  
+Method: POST  
+Route: /logout  
+Headers: Authorization: Bearer <token>
+
+Example:
+```bash
+curl -X POST http://127.0.0.1:5002/logout \
+  -H "Authorization: Bearer RANDOM_GENERATED_TOKEN"
+```
+
+Successful Response (200):
+```json
+{
+  "ok": true,
+  "message": "Logged out"
+}
+```
+
+After logout, any attempt to reuse the same token will result in a 401 error.
+
+---
+
+## 7. Ping Endpoint
+
+A simple echo endpoint used to demonstrate request and response behavior.
+
+Request  
+Method: POST  
+Route: /ping  
+Headers: Content-Type: application/json  
+
+Body Example:
+```json
 {
   "message": "This is a message from CS361"
 }
+```
 
-UML Sequence Diagram:
-sequenceDiagram
-    participant Client
-    participant LoginService
+Example:
+```bash
+curl -X POST http://127.0.0.1:5002/ping \
+  -H "Content-Type: application/json" \
+  -d '{"message":"This is a message from CS361"}'
+```
 
-    Client->>LoginService: POST /users (JSON user data)
-    LoginService-->>Client: 200 OK (User created)
+Response:
+```json
+{
+  "message": "This is a message from CS361"
+}
+```
 
-    Client->>LoginService: POST /login (credentials)
-    LoginService-->>Client: 200 OK (token returned)
+---
 
-    Client->>LoginService: GET /me (Authorization: Bearer token)
-    LoginService-->>Client: 200 OK (user profile)
+## UML Sequence Diagram
 
-How to start the code:
-1. in a terminal paste this: pip install -r requirements.txt
-2. Then run the server: python -m uvicorn main:app --host 127.0.0.1 --port 5002 --reload
-You should see: Uvicorn running on http://127.0.0.1:5002
-3. Open the Swagger docs: https://<your-codespace>-5002.app.github.dev/docs
+sequenceDiagram  
+    participant Client  
+    participant LoginService  
 
-To stop the server press: CTRL + C
+    Client->>LoginService: POST /users (create account)  
+    LoginService-->>Client: 200 OK  
+
+    Client->>LoginService: POST /login (credentials)  
+    LoginService-->>Client: 200 OK (token issued)  
+
+    Client->>LoginService: GET /validate (Bearer token)  
+    LoginService-->>Client: 200 OK (token valid)  
+
+    Client->>LoginService: GET /me (Bearer token)  
+    LoginService-->>Client: 200 OK (user profile)  
+
+    Client->>LoginService: POST /logout (Bearer token)  
+    LoginService-->>Client: 200 OK (session ended)  
+
+---
+
+## How to Start the Service
+
+1. Install dependencies:
+
+```
+pip install -r requirements.txt
+```
+
+2. Start the server:
+
+```
+python -m uvicorn main:app --host 127.0.0.1 --port 5002 --reload
+```
+
+You should see:
+
+```
+Uvicorn running on http://127.0.0.1:5002
+```
+
+3. Open the interactive API documentation:
+
+```
+http://127.0.0.1:5002/docs
+```
+
+To stop the server, press:
+
+```
+CTRL + C
+```
