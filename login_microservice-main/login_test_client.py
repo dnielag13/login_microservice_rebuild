@@ -4,7 +4,9 @@ login_test_client.py
 Test program for your Login Microservice:
 - Create a user (POST /users)
 - Login (POST /login)
-- Optionally verify token (GET /me)
+- Get current user (GET /me)
+- Validate token (GET /validate)
+- Logout (POST /logout)
 
 Use this for your video to show:
 1) Test program requests data from microservice
@@ -29,7 +31,6 @@ import requests
 # Examples:
 # AUTH_BASE = "http://127.0.0.1:5002"
 AUTH_BASE = "https://refactored-space-winner-4j54wvq4wq992qxgr-5002.app.github.dev"
-
 
 
 def _prompt_nonempty(label: str) -> str:
@@ -114,6 +115,38 @@ def me(token: str) -> None:
         print("\n🚨 Could not reach microservice:", e)
 
 
+def validate(token: str) -> None:
+    print("\n-------------------------------")
+    print(" VALIDATE  (GET /validate)")
+    print("-------------------------------")
+
+    try:
+        r = requests.get(
+            f"{AUTH_BASE}/validate",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        _print_response(r)
+    except requests.exceptions.RequestException as e:
+        print("\n🚨 Could not reach microservice:", e)
+
+
+def logout(token: str) -> None:
+    print("\n-------------------------------")
+    print(" LOGOUT  (POST /logout)")
+    print("-------------------------------")
+
+    try:
+        r = requests.post(
+            f"{AUTH_BASE}/logout",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=10,
+        )
+        _print_response(r)
+    except requests.exceptions.RequestException as e:
+        print("\n🚨 Could not reach microservice:", e)
+
+
 def main() -> None:
     print("========================================")
     print(" Login Microservice Test Program (VIDEO)")
@@ -128,25 +161,43 @@ def main() -> None:
         print("\nMenu:")
         print("1) Create User")
         print("2) Login")
-        print("3) Verify Token (/me)")
-        print("4) Exit")
+        print("3) Get Current User (/me)")
+        print("4) Validate Token (/validate)")
+        print("5) Logout (/logout)")
+        print("6) Exit")
 
         choice = input("\nChoose an option: ").strip()
 
         if choice == "1":
             create_user()
+
         elif choice == "2":
             token = login()
+
         elif choice == "3":
             if not token:
                 print("\n⚠️ No token yet. Please login first.")
             else:
                 me(token)
+
         elif choice == "4":
+            if not token:
+                print("\n⚠️ No token yet. Please login first.")
+            else:
+                validate(token)
+
+        elif choice == "5":
+            if not token:
+                print("\n⚠️ No token yet. Please login first.")
+            else:
+                logout(token)
+
+        elif choice == "6":
             print("\nGoodbye!")
             break
+
         else:
-            print("\nInvalid choice. Please enter 1, 2, 3, or 4.")
+            print("\nInvalid choice. Please enter 1, 2, 3, 4, 5, or 6.")
 
 
 if __name__ == "__main__":
