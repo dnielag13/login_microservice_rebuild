@@ -141,6 +141,11 @@ class Session:
 
 SESSIONS: Dict[str, Session] = {}
 
+SESSION_TIMEOUT = 3600  # seconds (1 hour)
+
+def is_session_expired(session: Session) -> bool:
+    return time.time() - session.created_at > SESSION_TIMEOUT
+
 # ----------------------------
 # User storage (persisted)
 # ----------------------------
@@ -187,11 +192,20 @@ def public_user(user_id: str) -> UserPublic:
     return UserPublic(user_id=user_id, display_name=u["display_name"])
 
 
-def _require_session(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True))) -> Session:
+def _require_session(
+    credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer(auto_error=True))
+) -> Session:
     token = credentials.credentials  # token WITHOUT "Bearer "
     sess = SESSIONS.get(token)
+
     if not sess:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    # Step 2: enforce session expiration
+    if is_session_expired(sess):
+        SESSIONS.pop(token, None)
+        raise HTTPException(status_code=401, detail="Session expired")
+
     return sess
 
 
