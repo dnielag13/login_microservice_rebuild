@@ -1,14 +1,16 @@
 # login_microservice
 
-This microservice provides user authentication and basic account management functionality for a distributed application. It allows a client program to create user accounts, authenticate users, retrieve profile information, validate active sessions, and terminate sessions when necessary.
+This microservice provides user authentication and account management functionality for a distributed application. It allows a client program to create user accounts, authenticate users, retrieve profile information, validate active sessions, and terminate sessions when necessary.
 
-All communication occurs over HTTP using JSON request and response bodies. Authentication is handled using bearer tokens returned during login.
+Authentication is handled using bearer tokens issued during login. Tokens are stored in memory and automatically expire after one hour to enforce session security.
+
+All communication occurs over HTTP using JSON request and response bodies.
 
 ---
 
 ## Communication Contract
 
-The following sections describe how to request data from the microservice and how responses are returned.
+The following sections describe how to send requests to the microservice and how responses are returned.
 
 ---
 
@@ -48,7 +50,7 @@ Successful Response (200):
 }
 ```
 
-If the user already exists or the input is invalid, a 400-level error will be returned.
+If the user already exists or input validation fails, a 400-level error will be returned.
 
 ---
 
@@ -115,7 +117,7 @@ Successful Response (200):
 }
 ```
 
-If the token is invalid or expired, a 401 error is returned.
+If the token is invalid or expired (sessions automatically expire after one hour), a 401 error is returned.
 
 ---
 
@@ -173,7 +175,7 @@ If the token is invalid or expired, a 401 Unauthorized response is returned.
 
 ## 6. Logout
 
-Invalidates an active session token.
+Invalidates an active session token and removes it from memory.
 
 Request  
 Method: POST  
@@ -194,7 +196,7 @@ Successful Response (200):
 }
 ```
 
-After logout, any attempt to reuse the same token will result in a 401 error.
+After logout, any attempt to reuse the same token will result in a 401 Unauthorized error.
 
 ---
 
@@ -232,24 +234,26 @@ Response:
 
 ## UML Sequence Diagram
 
-sequenceDiagram  
-    participant Client  
-    participant LoginService  
+```mermaid
+sequenceDiagram
+    participant Client
+    participant LoginService
 
-    Client->>LoginService: POST /users (create account)  
-    LoginService-->>Client: 200 OK  
+    Client->>LoginService: POST /users (create account)
+    LoginService-->>Client: 200 OK
 
-    Client->>LoginService: POST /login (credentials)  
-    LoginService-->>Client: 200 OK (token issued)  
+    Client->>LoginService: POST /login (credentials)
+    LoginService-->>Client: 200 OK (token issued)
 
-    Client->>LoginService: GET /validate (Bearer token)  
-    LoginService-->>Client: 200 OK (token valid)  
+    Client->>LoginService: GET /validate (Bearer token)
+    LoginService-->>Client: 200 OK (token valid)
 
-    Client->>LoginService: GET /me (Bearer token)  
-    LoginService-->>Client: 200 OK (user profile)  
+    Client->>LoginService: GET /me (Bearer token)
+    LoginService-->>Client: 200 OK (user profile)
 
-    Client->>LoginService: POST /logout (Bearer token)  
-    LoginService-->>Client: 200 OK (session ended)  
+    Client->>LoginService: POST /logout (Bearer token)
+    LoginService-->>Client: 200 OK (session ended)
+```
 
 ---
 
